@@ -3,70 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>카드 뒤집기 게임</title>
+    <title>기억력 훈련 - 3단계 게임</title>
     <style>
-        body { font-family: 'Noto Sans KR', sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 400px; margin-top: 20px; }
-        .card { width: 80px; height: 100px; background: #3b82f6; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: transparent; transform-style: preserve-3d; transition: transform 0.3s; }
-        .card.flipped { background: white; color: black; transform: rotateY(180deg); }
-        .card.matched { background: #10b981; cursor: default; }
-        h1 { color: #1e293b; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: #f8fafc; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        h1 { color: #1e293b; margin-bottom: 10px; }
+        .menu { margin-bottom: 20px; display: flex; gap: 10px; }
+        button { padding: 10px 20px; font-size: 1rem; cursor: pointer; border: none; border-radius: 8px; background: #3b82f6; color: white; transition: 0.2s; }
+        button:hover { background: #2563eb; }
+        button.active { background: #1e293b; font-weight: bold; }
+        .grid { display: grid; gap: 10px; margin-top: 20px; }
+        .card { width: 70px; height: 90px; background: #3b82f6; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: transparent; transition: 0.3s; }
+        .card.flipped { background: white; color: black; transform: rotateY(180deg); border: 2px solid #3b82f6; }
+        .card.matched { background: #10b981; color: white; cursor: default; }
+        #info { margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>카드 뒤집기 게임</h1>
-    <div id="status">시도 횟수: 0</div>
+    <h1>기억력 카드 게임</h1>
+    <div class="menu">
+        <button onclick="startGame('easy')">초급 (4x2)</button>
+        <button onclick="startGame('medium')">중급 (4x4)</button>
+        <button onclick="startGame('hard')">고급 (6x4)</button>
+    </div>
+    <div id="info">난이도를 선택해 주세요!</div>
     <div class="grid" id="grid"></div>
 
     <script>
-        const symbols = ['🍎', '🍌', '🍇', '🍊', '🍓', '🍒', '🍍', '🥝'];
-        let cards = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
+        const symbols = ['🍎', '🍌', '🍇', '🍊', '🍓', '🍒', '🍍', '🥝', '🍋', '🍉', '🍐', '🍑'];
         let flippedCards = [];
         let matchedCount = 0;
-        let attempts = 0;
+        let canFlip = true;
 
-        const grid = document.getElementById('grid');
-        const status = document.getElementById('status');
+        function startGame(level) {
+            const grid = document.getElementById('grid');
+            const info = document.getElementById('info');
+            grid.innerHTML = '';
+            flippedCards = [];
+            matchedCount = 0;
+            
+            let count = 4; // 초급 기본
+            if(level === 'easy') { count = 4; grid.style.gridTemplateColumns = 'repeat(4, 1fr)'; }
+            else if(level === 'medium') { count = 8; grid.style.gridTemplateColumns = 'repeat(4, 1fr)'; }
+            else { count = 12; grid.style.gridTemplateColumns = 'repeat(6, 1fr)'; }
 
-        cards.forEach((symbol, index) => {
-            const card = document.createElement('div');
-            card.classList.add('card');
-            card.dataset.symbol = symbol;
-            card.dataset.index = index;
-            card.innerText = symbol;
-            card.addEventListener('click', flipCard);
-            grid.appendChild(card);
-        });
+            info.innerText = `${level.toUpperCase()} 모드 시작!`;
+            
+            let selectedSymbols = symbols.slice(0, count);
+            let gameCards = [...selectedSymbols, ...selectedSymbols].sort(() => Math.random() - 0.5);
 
-        function flipCard() {
-            if (flippedCards.length < 2 && !this.classList.contains('flipped')) {
-                this.classList.add('flipped');
-                flippedCards.push(this);
+            gameCards.forEach(symbol => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.innerText = symbol;
+                card.onclick = () => flipCard(card);
+                grid.appendChild(card);
+            });
+        }
 
-                if (flippedCards.length === 2) {
-                    attempts++;
-                    status.innerText = `시도 횟수: ${attempts}`;
-                    checkMatch();
-                }
+        function flipCard(card) {
+            if (!canFlip || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+            card.classList.add('flipped');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                canFlip = false;
+                checkMatch();
             }
         }
 
         function checkMatch() {
             const [card1, card2] = flippedCards;
-            if (card1.dataset.symbol === card2.dataset.symbol) {
+            if (card1.innerText === card2.innerText) {
                 card1.classList.add('matched');
                 card2.classList.add('matched');
                 matchedCount += 2;
                 flippedCards = [];
-                if (matchedCount === cards.length) alert('축하합니다! 모두 맞추셨습니다!');
+                canFlip = true;
+                const total = document.querySelectorAll('.card').length;
+                if (matchedCount === total) setTimeout(() => alert('대단해요! 클리어!'), 500);
             } else {
                 setTimeout(() => {
                     card1.classList.remove('flipped');
                     card2.classList.remove('flipped');
                     flippedCards = [];
+                    canFlip = true;
                 }, 1000);
             }
         }
+        
+        // 초기 시작
+        startGame('easy');
     </script>
 </body>
 </html>
